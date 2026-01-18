@@ -254,7 +254,7 @@ async def handle(request):
     
 async def start_webserver():
     app = web.Application()
-    app.router.add_route("*", "/rocall", handle)
+    app.router.add_route("*", "/api", handle)
 
     runner = web.AppRunner(app)
     await runner.setup()
