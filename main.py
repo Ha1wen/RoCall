@@ -89,13 +89,13 @@ def verify_user(guild_id, rblx_id):
     response = requests.get(url,headers={"Authorization": bloxlink_token},timeout=10)
 
     if response.status_code != 200:
-        return response #web.json_response({"error": "Failed to fetch Discord ID."}, status=500)
+        return web.json_response(reason= "Failed to fetch Discord ID", status=500)
 
     json_data = response.json()
     disc_id = json_data["discordIDs"][0]
 
     if disc_id is None:
-        return web.json_response(reason="User is not linked on Bloxlink.", status=500)
+        return web.json_response(reason="User is not linked on Bloxlink", status=500)
     
     data["Users"][rblx_id] = {
         "DISC_ID": int(disc_id),
@@ -177,7 +177,7 @@ async def handle(request):
 
     if guildData.get("IDLE_VC") is None or guildData.get("MAIN_VC") is None:
         return web.json_response(reason="VC Channels are not set in the requested guild", status=500)
-    
+
     idle = guild.get_channel(guildData["IDLE_VC"])
     main = guild.get_channel(guildData["MAIN_VC"])
 
@@ -187,8 +187,9 @@ async def handle(request):
     if action is None or mode is None:
         return web.json_response(reason="Action/Mode not specified", status=400)
 
-    rblx_id = request.headers.get("rblx-id") or "0"
+    rblx_id = request.headers.get("rblx-id")
     userData = data["Users"].get(rblx_id)
+    disc_id = 0
 
     if userData is not None:
         disc_id = userData["DISC_ID"]
@@ -199,14 +200,14 @@ async def handle(request):
             disc_id = respone
         else:
             return respone
-        
+
     member = guild.get_member(disc_id)
-        
+
     if member is None:
         try:
             member = await guild.fetch_member(disc_id)
         except discord.NotFound:
-            return web.json_response({"status": "none"})
+            return web.json_response({"status": "inactive"})
 
     def getStatus():
         if member.voice is None or member.voice.channel is None:
@@ -246,11 +247,13 @@ async def handle(request):
             #await member.edit(mute=False)
         elif action == "mute":
             await idle.set_permissions(member, overwrite=None)
-            #await idle.set_permissions(member, speak=False)
             await member.move_to(idle)
+            #await idle.set_permissions(member, speak=False)
             #await member.edit(mute=True)
 
         return web.json_response({"status": getStatus()})
+    
+    return web.json_response(reason="Idk what happened", status=418)
     
 async def start_webserver():
     app = web.Application()
@@ -263,18 +266,11 @@ async def start_webserver():
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
 
-    print(f"Server running on http://0.0.0.0:{port}")
-    
-    while True:
-        await asyncio.sleep(3600)
+    print(f"Web server running on port {port}")
 
-async def main():
-    try:
-        await asyncio.gather(
-            client.start(BOT_TOKEN),
-            start_webserver()
-        )
-    finally:
-        await client.close()
+@client.event
+async def on_ready():
+    print(f"Logged in as {client.user}")
+    client.loop.create_task(start_webserver())
 
-asyncio.run(main())
+client.run(BOT_TOKEN)
