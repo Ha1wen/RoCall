@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 COOLDOWN_SECONDS = 30
 
@@ -39,6 +39,9 @@ class Client(discord.Client):
 
         self.synced = True
         print("All guilds synced")
+
+        print(f"Logged in as {client.user}")
+        client.loop.create_task(start_webserver())
 
 client = Client()
 
@@ -267,10 +270,5 @@ async def start_webserver():
     await site.start()
 
     print(f"Web server running on port {port}")
-
-@client.event
-async def on_ready():
-    print(f"Logged in as {client.user}")
-    client.loop.create_task(start_webserver())
 
 client.run(BOT_TOKEN)
