@@ -165,6 +165,9 @@ async def handle(request):
     guild_id = request.headers.get("guild-id")
     password = request.headers.get("password")
 
+    print("epic sauce")
+    print(guild_id)
+
     if guild_id is None:
         return web.json_response(reason="Improper guild id", status=400)
 
