@@ -167,7 +167,7 @@ client.tree.add_command(set_group)
 
 async def handle(request):
     try:
-        return web.json_response({"error":"Improper guild id"}, status=400)
+        return web.json_response({"error":"Improper guild id"}, reason="Improper guild id", status=400)
     
         guild_id = request.headers.get("guild-id")
         password = request.headers.get("password")
