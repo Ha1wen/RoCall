@@ -1,4 +1,3 @@
-import asyncio
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -16,9 +15,6 @@ logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdo
 load_dotenv(override=True)
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-
-print(f"Bot token: {BOT_TOKEN}")
-
 COOLDOWN_SECONDS = 30
 
 class Client(discord.Client):
@@ -55,65 +51,6 @@ set_group = app_commands.Group(
     name="set",
     description="Configure bot settings (admin only)"
 )
-
-if not os.path.exists("data.json"):
-    with open("data.json", "w") as f:
-        json.dump({"Guilds":{}, "Users":{}}, f)
-
-with open("data.json", "r") as file:
-    data = json.load(file)
-
-def save_data():
-    with open("data.json", "w") as file:
-        json.dump(data, file, indent=4)
-
-def save_setting(guildId, key, val):
-    guildId = str(guildId)
-
-    data["Guilds"].setdefault(guildId, {})
-
-    data["Guilds"][guildId][key] = val
-    save_data()
-
-def verify_user(guild_id, rblx_id):
-    rblx_id = str(rblx_id)
-
-    user_entry = data["Users"].get(rblx_id)
-    guildData = data["Guilds"].get(guild_id) or {}
-    bloxlink_token = guildData.get("BLOXLINK")
-
-    if bloxlink_token is None:
-        return web.json_response(reason= "Bloxlink token not set", status=500)
-
-    now = int(time.time())
-
-    if user_entry:
-        last_update = user_entry.get("TIME_UPDATED", 0)
-        if now - last_update < COOLDOWN_SECONDS:
-            remaining = COOLDOWN_SECONDS - (now - last_update)
-            return web.json_response(reason= f"Cooldown active. Try again in {remaining} seconds.", status=425)
-        
-    url = f"https://api.blox.link/v4/public/guilds/{guild_id}/roblox-to-discord/{rblx_id}"
-
-    response = requests.get(url,headers={"Authorization": bloxlink_token},timeout=10)
-
-    if response.status_code != 200:
-        return web.json_response(reason= "Failed to fetch Discord ID", status=500)
-
-    json_data = response.json()
-    disc_id = json_data["discordIDs"][0]
-
-    if disc_id is None:
-        return web.json_response(reason="User is not linked on Bloxlink", status=500)
-    
-    data["Users"][rblx_id] = {
-        "DISC_ID": int(disc_id),
-        "TIME_UPDATED": now
-    }
-
-    save_data()
-
-    return int(disc_id)
 
 @client.event
 async def on_voice_state_update(member, before, after):
@@ -165,33 +102,87 @@ async def set_error(interaction: discord.Interaction, error: app_commands.AppCom
 
 client.tree.add_command(set_group)
 
+if not os.path.exists("data.json"):
+    with open("data.json", "w") as f:
+        json.dump({"Guilds":{}, "Users":{}}, f)
+
+with open("data.json", "r") as file:
+    data = json.load(file)
+
+def save_data():
+    with open("data.json", "w") as file:
+        json.dump(data, file, indent=4)
+
+def save_setting(guildId, key, val):
+    guildId = str(guildId)
+
+    data["Guilds"].setdefault(guildId, {})
+
+    data["Guilds"][guildId][key] = val
+    save_data()
+
+def verify_user(guild_id, rblx_id):
+    rblx_id = str(rblx_id)
+
+    user_entry = data["Users"].get(rblx_id)
+    guildData = data["Guilds"].get(guild_id) or {}
+    bloxlink_token = guildData.get("BLOXLINK")
+
+    if bloxlink_token is None:
+        return web.json_response({"error":"Bloxlink token not set"}, status=500)
+
+    now = int(time.time())
+
+    if user_entry:
+        last_update = user_entry.get("TIME_UPDATED", 0)
+        if now - last_update < COOLDOWN_SECONDS:
+            remaining = COOLDOWN_SECONDS - (now - last_update)
+            return web.json_response({"error": f"Cooldown active. Try again in {remaining} seconds."}, status=425)
+        
+    url = f"https://api.blox.link/v4/public/guilds/{guild_id}/roblox-to-discord/{rblx_id}"
+
+    response = requests.get(url,headers={"Authorization": bloxlink_token},timeout=10)
+
+    if response.status_code != 200:
+        return web.json_response({"error":"Failed to fetch Discord ID"}, status=500)
+
+    json_data = response.json()
+    disc_id = json_data["discordIDs"][0]
+
+    if disc_id is None:
+        return web.json_response({"error":"User is not linked on Bloxlink"}, status=500)
+    
+    data["Users"][rblx_id] = {
+        "DISC_ID": int(disc_id),
+        "TIME_UPDATED": now
+    }
+
+    save_data()
+
+    return int(disc_id)
+
 async def handle(request):
     try:
-        return web.json_response({"error":"Improper guild id"}, reason="Improper guild id", status=400)
-    
         guild_id = request.headers.get("guild-id")
         password = request.headers.get("password")
 
-        print("epic sauce")
-        print(guild_id)
-
         if guild_id is None:
-            return web.json_response(reason="Improper guild id", status=400)
+            return web.json_response({"error":"Improper guild id"}, status=400)
 
         guild = client.get_guild(int(guild_id))
         guildData = data["Guilds"].get(guild_id) or {}
 
         if guild is None:
-            return web.json_response(reason="Bot is not in specified guild", status=500)
+            return web.json_response({"error":"Bot is not in specified guild"}, status=400)
 
         if guildData.get("PASSWORD") is None:
-            return web.json_response(reason="Password is not set in the requested guild", status=500)
+            return web.json_response({"error":"Password is not set in the requested guild"}, status=400)
 
         if password != guildData["PASSWORD"]:
-            return web.json_response(reason="Password is incorrect", status=401)
+            return web.json_response({"error":"Password is incorrect"}, status=400)
 
         if guildData.get("IDLE_VC") is None or guildData.get("MAIN_VC") is None:
-            return web.json_response(reason="VC Channels are not set in the requested guild", status=500)
+            return web.json_response({"error":"VC Channels are not set in the requested guild"}, status=400)
 
         idle = guild.get_channel(guildData["IDLE_VC"])
         main = guild.get_channel(guildData["MAIN_VC"])
@@ -200,7 +191,7 @@ async def handle(request):
         mode = request.headers.get("mode")
 
         if action is None or mode is None:
-            return web.json_response(reason="Action/Mode not specified", status=400)
+            return web.json_response({"error":"Action/Mode not specified"}, status=400)
 
         rblx_id = request.headers.get("rblx-id")
         userData = data["Users"].get(rblx_id)
@@ -249,7 +240,7 @@ async def handle(request):
 
         if request.method == "POST":
             if member.voice is None or member.voice.channel is None:
-                return web.json_response(reason="Member not in voice channel", status=400)
+                return web.json_response({"error":"Member not in voice channel"}, status=400)
             
             if action == "connect":
                 await member.move_to(main)
@@ -268,7 +259,7 @@ async def handle(request):
 
             return web.json_response({"status": getStatus()})
 
-        return web.json_response(reason="Idk what happened", status=418)
+        return web.json_response({"error":"Idk what happened"}, status=418)
     
     except Exception as e:
         print("Exception in /api handler:", e, flush=True)
