@@ -13,6 +13,8 @@ load_dotenv(override=True)
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
+print(f"Bot token: {BOT_TOKEN}")
+
 COOLDOWN_SECONDS = 30
 
 class Client(discord.Client):
@@ -28,7 +30,7 @@ class Client(discord.Client):
 
     async def on_ready(self):
         print("Setting up bot")
-        
+
         if self.synced:
             return
 
