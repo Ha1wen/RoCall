@@ -7,7 +7,12 @@ import os
 import json
 import requests
 import time
+import logging
+import sys
 from dotenv import load_dotenv
+
+logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
+logging.info("balls")
 
 load_dotenv(override=True)
 
