@@ -12,7 +12,6 @@ import sys
 from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
-logging.info("balls")
 
 load_dotenv(override=True)
 
@@ -168,6 +167,8 @@ client.tree.add_command(set_group)
 
 async def handle(request):
     try:
+        return web.json_response({"error":"Improper guild id"}, status=400)
+    
         guild_id = request.headers.get("guild-id")
         password = request.headers.get("password")
 
