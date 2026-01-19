@@ -32,7 +32,7 @@ Current public API (may experience delays): https://rocall.onrender.com/api
 ---
 
 ## ❤️ Huge Thanks To
-- **Ghostine**: *Logo concept art*
+- **Ghostine**: *Front-end development*
 - **Wumbity**: *Bot banner art*
 - **Ransomwave**: *Inspiration*
 - **RokoToTheRoot**: *Motivation*
