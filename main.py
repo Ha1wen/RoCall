@@ -27,10 +27,10 @@ class Client(discord.Client):
         self.synced = False
 
     async def on_ready(self):
+        print("Setting up bot")
+        
         if self.synced:
             return
-
-        print("Setting up bot")
 
         for guild in self.guilds:
             self.tree.copy_global_to(guild=guild)
@@ -40,8 +40,8 @@ class Client(discord.Client):
         self.synced = True
         print("All guilds synced")
 
-        print(f"Logged in as {client.user}")
-        client.loop.create_task(start_webserver())
+        print(f"Logged in as {self.user}")
+        self.loop.create_task(start_webserver())
 
 client = Client()
 
