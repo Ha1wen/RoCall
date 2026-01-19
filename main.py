@@ -162,106 +162,111 @@ async def set_error(interaction: discord.Interaction, error: app_commands.AppCom
 client.tree.add_command(set_group)
 
 async def handle(request):
-    guild_id = request.headers.get("guild-id")
-    password = request.headers.get("password")
+    try:
+        guild_id = request.headers.get("guild-id")
+        password = request.headers.get("password")
 
-    print("epic sauce")
-    print(guild_id)
+        print("epic sauce")
+        print(guild_id)
 
-    if guild_id is None:
-        return web.json_response(reason="Improper guild id", status=400)
+        if guild_id is None:
+            return web.json_response(reason="Improper guild id", status=400)
 
-    guild = client.get_guild(int(guild_id))
-    guildData = data["Guilds"].get(guild_id) or {}
+        guild = client.get_guild(int(guild_id))
+        guildData = data["Guilds"].get(guild_id) or {}
 
-    if guild is None:
-        return web.json_response(reason="Bot is not in specified guild", status=500)
+        if guild is None:
+            return web.json_response(reason="Bot is not in specified guild", status=500)
 
-    if guildData.get("PASSWORD") is None:
-        return web.json_response(reason="Password is not set in the requested guild", status=500)
+        if guildData.get("PASSWORD") is None:
+            return web.json_response(reason="Password is not set in the requested guild", status=500)
 
-    if password != guildData["PASSWORD"]:
-        return web.json_response(reason="Password is incorrect", status=401)
+        if password != guildData["PASSWORD"]:
+            return web.json_response(reason="Password is incorrect", status=401)
 
-    if guildData.get("IDLE_VC") is None or guildData.get("MAIN_VC") is None:
-        return web.json_response(reason="VC Channels are not set in the requested guild", status=500)
+        if guildData.get("IDLE_VC") is None or guildData.get("MAIN_VC") is None:
+            return web.json_response(reason="VC Channels are not set in the requested guild", status=500)
 
-    idle = guild.get_channel(guildData["IDLE_VC"])
-    main = guild.get_channel(guildData["MAIN_VC"])
+        idle = guild.get_channel(guildData["IDLE_VC"])
+        main = guild.get_channel(guildData["MAIN_VC"])
 
-    action = request.headers.get("action")
-    mode = request.headers.get("mode")
+        action = request.headers.get("action")
+        mode = request.headers.get("mode")
 
-    if action is None or mode is None:
-        return web.json_response(reason="Action/Mode not specified", status=400)
+        if action is None or mode is None:
+            return web.json_response(reason="Action/Mode not specified", status=400)
 
-    rblx_id = request.headers.get("rblx-id")
-    userData = data["Users"].get(rblx_id)
-    disc_id = 0
+        rblx_id = request.headers.get("rblx-id")
+        userData = data["Users"].get(rblx_id)
+        disc_id = 0
 
-    if userData is not None:
-        disc_id = userData["DISC_ID"]
-    else:
-        respone = verify_user(guild_id, rblx_id)
-
-        if isinstance(respone, int):
-            disc_id = respone
+        if userData is not None:
+            disc_id = userData["DISC_ID"]
         else:
-            return respone
+            respone = verify_user(guild_id, rblx_id)
 
-    member = guild.get_member(disc_id)
-
-    if member is None:
-        try:
-            member = await guild.fetch_member(disc_id)
-        except discord.NotFound:
-            return web.json_response({"status": "inactive"})
-
-    def getStatus():
-        if member.voice is None or member.voice.channel is None:
-                return "inactive"
-        
-        if mode == "channel":
-            if member.voice.channel.id == main.id:
-                return "active"
-            else: #elif member.voice.channel.id == idle.id
-                return "idle"
-        elif mode == "voice":
-            if member.voice.channel.id == idle.id:
-                if idle.permissions_for(member).speak:
-                    return "active"
-                else:
-                    return "idle"
+            if isinstance(respone, int):
+                disc_id = respone
             else:
-                return "inactive"
-        
-        return "inactive"
+                return respone
 
-    if request.method == "GET":
-        return web.json_response({"status": getStatus()})
+        member = guild.get_member(disc_id)
 
-    if request.method == "POST":
-        if member.voice is None or member.voice.channel is None:
-            return web.json_response(reason="Member not in voice channel", status=400)
-        
-        if action == "connect":
-            await member.move_to(main)
-        elif action == "disconnect":
-            await member.move_to(idle)
-        elif action == "unmute":
-            await idle.set_permissions(member, speak=True)
-            await member.move_to(idle)
-            #await idle.set_permissions(member, overwrite=None)
-            #await member.edit(mute=False)
-        elif action == "mute":
-            await idle.set_permissions(member, overwrite=None)
-            await member.move_to(idle)
-            #await idle.set_permissions(member, speak=False)
-            #await member.edit(mute=True)
+        if member is None:
+            try:
+                member = await guild.fetch_member(disc_id)
+            except discord.NotFound:
+                return web.json_response({"status": "inactive"})
 
-        return web.json_response({"status": getStatus()})
+        def getStatus():
+            if member.voice is None or member.voice.channel is None:
+                    return "inactive"
+            
+            if mode == "channel":
+                if member.voice.channel.id == main.id:
+                    return "active"
+                else: #elif member.voice.channel.id == idle.id
+                    return "idle"
+            elif mode == "voice":
+                if member.voice.channel.id == idle.id:
+                    if idle.permissions_for(member).speak:
+                        return "active"
+                    else:
+                        return "idle"
+                else:
+                    return "inactive"
+            
+            return "inactive"
+
+        if request.method == "GET":
+            return web.json_response({"status": getStatus()})
+
+        if request.method == "POST":
+            if member.voice is None or member.voice.channel is None:
+                return web.json_response(reason="Member not in voice channel", status=400)
+            
+            if action == "connect":
+                await member.move_to(main)
+            elif action == "disconnect":
+                await member.move_to(idle)
+            elif action == "unmute":
+                await idle.set_permissions(member, speak=True)
+                await member.move_to(idle)
+                #await idle.set_permissions(member, overwrite=None)
+                #await member.edit(mute=False)
+            elif action == "mute":
+                await idle.set_permissions(member, overwrite=None)
+                await member.move_to(idle)
+                #await idle.set_permissions(member, speak=False)
+                #await member.edit(mute=True)
+
+            return web.json_response({"status": getStatus()})
+
+        return web.json_response(reason="Idk what happened", status=418)
     
-    return web.json_response(reason="Idk what happened", status=418)
+    except Exception as e:
+        print("Exception in /api handler:", e, flush=True)
+        return web.json_response({"error": "Internal server error", "details": str(e)}, status=500)
     
 async def start_webserver():
     app = web.Application()
