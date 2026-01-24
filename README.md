@@ -27,7 +27,7 @@ RoCall enables users to create **interactive, voice-enabled Roblox experiences i
 3. [Download Roblox model](https://github.com/Ha1wen/RoCall/raw/main/RoCall.rbxm) and put it in ServerScriptService
 4. Edit the Config module inside the model
 
-Current public API (may experience delays): https://rocall.onrender.com/api
+Current public API (may be down): https://rocall.onrender.com/api or https://rocall-1.onrender.com/api
 
 ---
 
