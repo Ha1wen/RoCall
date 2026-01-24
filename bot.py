@@ -32,7 +32,7 @@ class Client(discord.Client):
 
         self.loop.create_task(server.start())
 
-    async def on_voice_state_update(member, before, after):
+    async def on_voice_state_update(self, member, before, after):
         if before.channel is None:
             return
         
